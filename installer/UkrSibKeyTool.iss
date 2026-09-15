@@ -26,6 +26,13 @@ SolidCompression=yes
 WizardStyle=modern
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
+; Lets Setup close a running instance of the app (via Restart Manager) before
+; overwriting its files instead of failing with a "file in use" error — needed
+; both for a normal reinstall-over-running-app and for the in-app auto-updater,
+; which launches this installer silently while the app is still executing.
+CloseApplications=yes
+CloseApplicationsFilter=*.exe
+RestartApplications=no
 
 [Languages]
 Name: "ukrainian"; MessagesFile: "compiler:Languages\Ukrainian.isl"
@@ -43,4 +50,6 @@ Name: "{group}\{cm:UninstallProgram,{#MyAppName}}"; Filename: "{uninstallexe}"
 Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
 
 [Run]
-Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#MyAppName}}"; Flags: nowait postinstall skipifsilent
+; No "skipifsilent": the in-app auto-updater runs this installer silently and
+; relies on Setup itself to relaunch the app afterward.
+Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#MyAppName}}"; Flags: nowait postinstall

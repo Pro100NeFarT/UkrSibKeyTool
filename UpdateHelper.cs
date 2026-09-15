@@ -57,13 +57,17 @@ internal static class UpdateHelper
         string releaseUrl = root.TryGetProperty("html_url", out var h) ? h.GetString() ?? RepoUrl : RepoUrl;
         string? notes = root.TryGetProperty("body", out var b) ? b.GetString() : null;
 
+        // Look for the installer specifically (not the portable .zip) — the auto-update
+        // flow silently runs it, which is the only asset that knows how to update the
+        // folder-based install correctly.
         string? downloadUrl = null;
         if (root.TryGetProperty("assets", out var assets))
         {
             foreach (var asset in assets.EnumerateArray())
             {
                 string name = asset.TryGetProperty("name", out var n) ? n.GetString() ?? "" : "";
-                if (name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
+                if (name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) &&
+                    name.Contains("setup", StringComparison.OrdinalIgnoreCase))
                 {
                     downloadUrl = asset.TryGetProperty("browser_download_url", out var u) ? u.GetString() : null;
                     break;
@@ -84,48 +88,32 @@ internal static class UpdateHelper
     }
 
     /// <summary>
-    /// Downloads the new .exe and replaces the currently running one in place, then
-    /// relaunches it. Because a running .exe can't overwrite itself on Windows, the
-    /// swap is done by a tiny detached helper script that waits for this process to
-    /// exit first. Call this last — it terminates the current process.
+    /// Downloads the release's installer and runs it silently. The app is deployed as a
+    /// folder of ~250 files (not a single exe), so a hand-rolled file swap can't safely
+    /// update it — the installer already knows how to do that correctly. Its
+    /// "CloseApplications=yes" setting closes this running instance via Windows Restart
+    /// Manager before overwriting files, and its [Run] entry relaunches the app afterward
+    /// (including in silent mode). Call this last — it terminates the current process.
     /// </summary>
     public static async Task DownloadAndInstallAsync(string downloadUrl)
     {
-        string currentExe = Environment.ProcessPath ?? Application.ExecutablePath;
-        string tempNewExe = Path.Combine(Path.GetTempPath(), $"UkrSibKeyTool_update_{Guid.NewGuid():N}.exe");
+        string tempInstaller = Path.Combine(Path.GetTempPath(), $"UkrSibKeyTool_Setup_{Guid.NewGuid():N}.exe");
 
         using (var http = new HttpClient())
         {
             http.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue(RepoName, CurrentVersion.ToString()));
             http.Timeout = TimeSpan.FromMinutes(5);
-            await using var fs = new FileStream(tempNewExe, FileMode.Create, FileAccess.Write);
+            await using var fs = new FileStream(tempInstaller, FileMode.Create, FileAccess.Write);
             using var resp = await http.GetAsync(downloadUrl, HttpCompletionOption.ResponseHeadersRead);
             resp.EnsureSuccessStatusCode();
             await resp.Content.CopyToAsync(fs);
         }
 
-        string scriptPath = Path.Combine(Path.GetTempPath(), $"UkrSibKeyTool_update_{Guid.NewGuid():N}.cmd");
-        int pid = Environment.ProcessId;
-        string script =
-            "@echo off\r\n" +
-            $":wait\r\n" +
-            $"tasklist /FI \"PID eq {pid}\" | find \"{pid}\" >nul\r\n" +
-            "if not errorlevel 1 (\r\n" +
-            "  timeout /t 1 /nobreak >nul\r\n" +
-            "  goto wait\r\n" +
-            ")\r\n" +
-            $"move /y \"{tempNewExe}\" \"{currentExe}\" >nul\r\n" +
-            $"start \"\" \"{currentExe}\"\r\n" +
-            "del \"%~f0\"\r\n";
-        File.WriteAllText(scriptPath, script);
-
         var psi = new ProcessStartInfo
         {
-            FileName = "cmd.exe",
-            ArgumentList = { "/c", scriptPath },
-            UseShellExecute = false,
-            CreateNoWindow = true,
-            WindowStyle = ProcessWindowStyle.Hidden
+            FileName = tempInstaller,
+            ArgumentList = { "/CURRENTUSER", "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART" },
+            UseShellExecute = true
         };
         Process.Start(psi);
 
