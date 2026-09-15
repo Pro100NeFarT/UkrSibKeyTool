@@ -17,7 +17,12 @@
 
 ## Встановлення
 
-Завантажте `UkrSibKeyTool.exe` зі сторінки [Releases](https://github.com/Pro100NeFarT/UkrSibKeyTool/releases) — це самодостатній файл, `.NET` встановлювати не потрібно. Інсталяція не потрібна: запустіть файл.
+Зайдіть на сторінку [Releases](https://github.com/Pro100NeFarT/UkrSibKeyTool/releases) і завантажте один з варіантів — `.NET` встановлювати не потрібно в обох випадках:
+
+- **`UkrSibKeyTool-portable-win-x64.zip`** (рекомендовано) — розпакуйте в будь-яку папку і запустіть `UkrSibKeyTool.exe` звідти. Всі бібліотеки лежать поруч, нічого не розпаковується "на льоту" під час роботи — найнадійніший варіант, особливо на машинах з суворим антивірусом/політиками безпеки.
+- **`UkrSibKeyTool.exe`** — один файл, зручніше передати, але при першому запуску розпаковує частину бібліотек у `%TEMP%`. На деяких машинах це блокує антивірус/EDR навіть якщо сам `.exe` додано у виключення — якщо так сталося, скористайтесь ZIP-варіантом вище.
+
+Оскільки файли не підписані сертифікатом, Windows SmartScreen може показати "Windows захистила ваш ПК" при першому запуску — натисніть «Докладніше» → «Виконати попри це».
 
 > Для генерації нового ключа й конвертації в XML зовнішні залежності не потрібні. `openssl` (Git for Windows або окремо встановлений) потрібен лише якщо ви імпортуєте **вже існуючий** ключ старого зашифрованого формату (`Proc-Type: 4,ENCRYPTED`).
 
@@ -40,4 +45,10 @@ dotnet build -c Release
 
 ```
 dotnet publish -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true
+```
+
+Портативна версія (папка, рекомендована для розповсюдження):
+
+```
+dotnet publish -c Release -r win-x64 --self-contained true -p:PublishSingleFile=false
 ```
