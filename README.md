@@ -17,10 +17,10 @@
 
 ## Встановлення
 
-Зайдіть на сторінку [Releases](https://github.com/Pro100NeFarT/UkrSibKeyTool/releases) і завантажте один з варіантів — `.NET` встановлювати не потрібно в обох випадках:
+Зайдіть на сторінку [Releases](https://github.com/Pro100NeFarT/UkrSibKeyTool/releases) і завантажте один з варіантів — `.NET` встановлювати не потрібно в обох випадках, адміністраторські права теж не потрібні:
 
-- **`UkrSibKeyTool-portable-win-x64.zip`** (рекомендовано) — розпакуйте в будь-яку папку і запустіть `UkrSibKeyTool.exe` звідти. Всі бібліотеки лежать поруч, нічого не розпаковується "на льоту" під час роботи — найнадійніший варіант, особливо на машинах з суворим антивірусом/політиками безпеки.
-- **`UkrSibKeyTool.exe`** — один файл, зручніше передати, але при першому запуску розпаковує частину бібліотек у `%TEMP%`. На деяких машинах це блокує антивірус/EDR навіть якщо сам `.exe` додано у виключення — якщо так сталося, скористайтесь ZIP-варіантом вище.
+- **`UkrSibKeyTool-Setup-X.Y.Z.exe`** (рекомендовано) — звичайний інсталятор. Ставить застосунок у профіль поточного користувача (`%LocalAppData%\Programs\UkrSibKeyTool`), додає ярлик на робочий стіл і в меню "Пуск", реєструє видалення через "Програми і компоненти". Мова інсталятора — українська (є й англійська).
+- **`UkrSibKeyTool-portable-win-x64.zip`** — без інсталяції: розпакуйте в будь-яку папку і запускайте `UkrSibKeyTool.exe` звідти. Зручно, якщо не можна нічого встановлювати, або для разового використання/тесту.
 
 Оскільки файли не підписані сертифікатом, Windows SmartScreen може показати "Windows захистила ваш ПК" при першому запуску — натисніть «Докладніше» → «Виконати попри це».
 
@@ -41,14 +41,16 @@
 dotnet build -c Release
 ```
 
-Самодостатній однофайловий `.exe`:
-
-```
-dotnet publish -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true
-```
-
-Портативна версія (папка, рекомендована для розповсюдження):
+Портативна версія (папка, самодостатня, без залежності від .NET на цільовій машині):
 
 ```
 dotnet publish -c Release -r win-x64 --self-contained true -p:PublishSingleFile=false
 ```
+
+Інсталятор (потрібен [Inno Setup 6](https://jrsoftware.org/isinfo.php)) — спочатку зібрати портативну версію командою вище, потім:
+
+```
+"C:\Users\<user>\AppData\Local\Programs\Inno Setup 6\ISCC.exe" installer\UkrSibKeyTool.iss
+```
+
+Результат — `installer-output\UkrSibKeyTool-Setup-X.Y.Z.exe`.
